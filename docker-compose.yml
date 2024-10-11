@@ -1,0 +1,44 @@
+services:
+  consul:
+    image: hashicorp/consul:latest
+    container_name: consul
+    ports:
+      - "5150:5150"      # Web UI and API
+      - "8600:8600/udp"  # DNS
+    command: "agent -dev -config-file=consul-service.json -client=0.0.0.0"
+    volumes:
+      - ./consul-service.json:/consul-service.json
+    networks:
+      - consul-network
+
+  kontest-user-stats-service:
+    build:
+      context: ./kontest-user-stats-service
+    container_name: kontest-user-stats-service
+    ports:
+      - "5152:5152"  # Port for your Go service
+    depends_on:
+      - consul
+    environment:
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=5150
+    networks:
+      - consul-network
+
+  kontest-api:
+    build:
+      context: ./kontest-api
+    container_name: kontest-api
+    ports:
+      - "5151:5151"  # Port for your Go service
+    depends_on:
+      - consul
+    environment:
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=5150
+    networks:
+      - consul-network
+
+networks:
+  consul-network:
+    driver: bridge

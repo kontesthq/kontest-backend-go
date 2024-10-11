@@ -1,0 +1,10 @@
+# Ignore everything
+/*
+
+# Do not ignore these files
+!/docker-compose.yml
+!/.env
+!/README.md
+
+# Allow other necessary configuration files if needed
+!/.gitignore
