@@ -11,6 +11,26 @@ services:
     networks:
       - consul-network
 
+  kontest-api:
+    build:
+      context: ./kontest-api
+    container_name: kontest-api
+    ports:
+      - "5151:5151"  # Port for your Go service
+    depends_on:
+      - consul
+      - db
+    environment:
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=5150
+
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+    networks:
+      - consul-network
+
   kontest-user-stats-service:
     build:
       context: ./kontest-user-stats-service
@@ -25,20 +45,23 @@ services:
     networks:
       - consul-network
 
-  kontest-api:
-    build:
-      context: ./kontest-api
-    container_name: kontest-api
-    ports:
-      - "5151:5151"  # Port for your Go service
-    depends_on:
-      - consul
+  db:
+    image: postgres:latest
     environment:
-      - CONSUL_HOST=consul
-      - CONSUL_PORT=5150
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - POSTGRES_DB=${DB_NAME:-kontest}
+    ports:
+      - "5432:5432"
     networks:
       - consul-network
+    volumes:
+      - db-data:/var/lib/postgresql/data
 
 networks:
   consul-network:
     driver: bridge
+
+volumes:
+  db-data:
+    driver: local
