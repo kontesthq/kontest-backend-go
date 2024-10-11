@@ -6,6 +6,12 @@ services:
       - "5150:5150"      # Web UI and API
       - "8600:8600/udp"  # DNS
     command: "agent -dev -config-file=consul-service.json -client=0.0.0.0"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:5150/v1/status/leader" ]
+      interval: 30s      # Check every 30 seconds
+      timeout: 10s       # Timeout after 10 seconds
+      retries: 3         # Consider container unhealthy after 3 failures
+      start_period: 30s  # Start checking after 30 seconds
     volumes:
       - ./consul-service.json:/consul-service.json
     networks:
@@ -18,7 +24,8 @@ services:
     ports:
       - "5153:5153"  # Port for your Go service
     depends_on:
-      - consul
+      consul:
+        condition: service_healthy
     environment:
       - CONSUL_HOST=consul
       - CONSUL_PORT=5150
@@ -32,8 +39,10 @@ services:
     ports:
       - "5151:5151"  # Port for your Go service
     depends_on:
-      - consul
-      - db
+      consul:
+        condition: service_healthy
+      db:
+        condition: service_started
     environment:
       - CONSUL_HOST=consul
       - CONSUL_PORT=5150
@@ -54,7 +63,8 @@ services:
     ports:
       - "5152:5152"  # Port for your Go service
     depends_on:
-      - consul
+      consul:
+        condition: service_healthy
     environment:
       - CONSUL_HOST=consul
       - CONSUL_PORT=5150
