@@ -114,6 +114,37 @@ services:
       - KAFKA_PORT=9092
     networks:
       - consul-network
+        
+  kontest-authentication-service:
+    build:
+      context: ./kontest-authentication
+    container_name: kontest-authentication-service
+    ports:
+      - "5155:5155"
+    depends_on:
+      consul:
+        condition: service_healthy
+
+      kafka:
+        condition: service_started
+
+      db:
+        condition: service_started
+    environment:
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=5150
+
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+
+      - KONTEST_AUTHENTICATION_SERVICE_HOST=kontest-authentication-service
+
+      - KAFKA_HOST=kafka
+      - KAFKA_PORT=9092
+    networks:
+      - consul-network
 
   db:
     image: postgres:latest
