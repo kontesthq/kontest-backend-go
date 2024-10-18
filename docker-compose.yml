@@ -35,6 +35,30 @@ services:
     networks:
       - consul-network
 
+  spicedb:
+    build:
+      context: .
+      dockerfile: config/spicedb/Dockerfile.spicedb
+    ports:
+      - "50051:50051"  # GRPC port
+      - "8443:8443"    # HTTP port (secured with TLS)
+    environment:
+      - SPICEDB_LOG_LEVEL=debug
+      - SPICEDB_GRPC_PRESHARED_KEY=spiceDBKey
+      - SPICEDB_GRPC_TLS_CERT_PATH=/spicedb.crt
+      - SPICEDB_GRPC_TLS_KEY_PATH=/spicedb.key
+      - SPICEDB_HTTP_TLS_CERT_PATH=/spicedb.crt
+      - SPICEDB_HTTP_TLS_KEY_PATH=/spicedb.key
+      - SPICEDB_DATASTORE_ENGINE=postgres
+      - SPICEDB_DATASTORE_CONN_URI=postgres://postgres:postgres@db:5432/spicedb?sslmode=disable
+    depends_on:
+      - db
+    volumes:
+      - ./config/spicedb/spicedb.crt:/spicedb.crt
+      - ./config/spicedb/spicedb.key:/spicedb.key
+    networks:
+      - consul-network
+
   api-gateway:
     build:
       context: ./kontest-api-gateway
@@ -130,6 +154,10 @@ services:
 
       db:
         condition: service_started
+
+      spicedb:
+        condition: service_started
+
     environment:
       - CONSUL_HOST=consul
       - CONSUL_PORT=5150
@@ -143,21 +171,28 @@ services:
 
       - KAFKA_HOST=kafka
       - KAFKA_PORT=9092
+
+      - SPICEDB_HOST=spicedb
+      - SPICEDB_PORT=50051
+      - SPICEDB_TOKEN=spiceDBKey
+      - SPICEDB_TLS_CERT_PATH=/spicedb.crt
     networks:
       - consul-network
+    volumes:
+      - ./config/spicedb/spicedb.crt:/spicedb.crt
 
   db:
     image: postgres:latest
     environment:
       - POSTGRES_USER=${DB_USER:-postgres}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
-      - POSTGRES_DB=${DB_NAME:-kontest}
     ports:
       - "5432:5432"
     networks:
       - consul-network
     volumes:
       - db-data:/var/lib/postgresql/data
+      - ./config/init-scripts/init-database-scripts:/docker-entrypoint-initdb.d
 
 networks:
   consul-network:

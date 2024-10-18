@@ -1,0 +1,18 @@
+definition organization {
+    relation member: user
+    relation admin: user
+
+    // # Admins have permission to delete users, make admins, and make members
+    permission delete_user = admin
+    permission make_admin = admin
+    permission make_member = admin
+}
+
+definition user {
+    relation belongs_to: organization
+
+    // # Permissions are based on the user's relationship to the organization
+    permission delete = belongs_to->delete_user
+    permission make_admin = belongs_to->make_admin
+    permission make_member = belongs_to->make_member
+}

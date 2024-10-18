@@ -1,0 +1,30 @@
+# Start with Alpine base image
+FROM alpine:latest
+
+# Install necessary dependencies
+RUN apk add --no-cache curl bash && \
+    echo "Installed curl and bash."
+
+RUN echo "Installing SpiceDB..."
+
+# Download and install the SpiceDB APK
+RUN curl -L -o /tmp/spicedb.apk https://github.com/authzed/spicedb/releases/download/v1.37.1/spicedb_1.37.1_linux_arm64.apk && \
+    apk add --no-cache --allow-untrusted /tmp/spicedb.apk && \
+    rm /tmp/spicedb.apk
+
+# Download and install the Zed client
+RUN curl -L -o /tmp/zed.apk https://github.com/authzed/zed/releases/download/v0.21.5/zed_0.21.5_linux_arm64.apk && \
+    apk add --no-cache --allow-untrusted /tmp/zed.apk && \
+    rm /tmp/zed.apk && \
+    echo "Downloaded and installed Zed client."
+
+# Copy your SpiceDB startup script
+COPY config/spicedb/start_spicedb.sh /start_spicedb.sh
+COPY config/spicedb/spicedb_schema.zed /spicedb_schema.zed
+
+# Make the startup script executable
+RUN chmod +x /start_spicedb.sh && \
+    echo "Made the startup script executable."
+
+# Start SpiceDB and run any other necessary commands
+ENTRYPOINT ["/start_spicedb.sh"]

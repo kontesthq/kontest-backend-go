@@ -8,3 +8,6 @@
 
 # Allow other necessary configuration files if needed
 !/.gitignore
+
+# Allow config folder
+!/config/
