@@ -5,6 +5,7 @@
 !/docker-compose.yml
 !/.env
 !/README.md
+!consul-service.json
 
 # Allow other necessary configuration files if needed
 !/.gitignore
