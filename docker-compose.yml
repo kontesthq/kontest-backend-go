@@ -180,6 +180,33 @@ services:
       - consul-network
     volumes:
       - ./config/spicedb/spicedb.crt:/spicedb.crt
+  
+  kontest-user-service:
+    build:
+      context: ./kontest-user-service
+    container_name: kontest-user-service
+    ports:
+      - "5156:5156"
+    depends_on:
+      consul:
+        condition: service_healthy
+        
+      db:
+        condition: service_started
+
+    environment:
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=5150
+
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+
+      - KONTEST_USER_SERVICE_HOST=kontest-user-service
+      - KONTEST_USER_SERVICE_PORT=5156
+    networks:
+      - consul-network
 
   db:
     image: postgres:latest
