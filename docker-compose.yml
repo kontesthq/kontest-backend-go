@@ -1,7 +1,6 @@
 services:
   consul:
     image: hashicorp/consul:latest
-    container_name: consul
     ports:
       - "5150:5150"      # Web UI and API
       - "8600:8600/udp"  # DNS
@@ -62,7 +61,6 @@ services:
   api-gateway:
     build:
       context: ./kontest-api-gateway
-    container_name: api-gateway
     ports:
       - "5153:5153"  # Port for your Go service
     depends_on:
@@ -71,15 +69,19 @@ services:
     environment:
       - CONSUL_HOST=consul
       - CONSUL_PORT=5150
+
+      - API_GATEWAY_HOST=api-gateway
+      - API_GATEWAY_PORT=5153
     networks:
       - consul-network
 
   kontest-api:
+    deploy:
+      replicas: 2
     build:
       context: ./kontest-api
-    container_name: kontest-api
-    ports:
-      - "5151:5151"  # Port for your Go service
+#    ports:
+#      - "5151:5151"  # Port for your Go service
     depends_on:
       consul:
         condition: service_healthy
@@ -95,16 +97,17 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=postgres
 
-      - KONTEST_API_SERVER_HOST=kontest-api
+#      - KONTEST_API_SERVER_HOST=kontest-api
     networks:
       - consul-network
 
   kontest-user-stats-service:
+    deploy:
+      replicas: 2
     build:
       context: ./kontest-user-stats-service
-    container_name: kontest-user-stats-service
-    ports:
-      - "5152:5152"  # Port for your Go service
+#    ports:
+#      - "5152:5152"  # Port for your Go service
     depends_on:
       consul:
         condition: service_healthy
@@ -112,16 +115,17 @@ services:
       - CONSUL_HOST=consul
       - CONSUL_PORT=5150
 
-      - KONTEST_API_USER_STATS_SERVICE_HOST=kontest-user-stats-service
+#      - KONTEST_API_USER_STATS_SERVICE_HOST=kontest-user-stats-service
     networks:
       - consul-network
 
   kontest-email-service:
+    deploy:
+      replicas: 2
     build:
       context: ./kontest-email-service
-    container_name: kontest-email-service
-    ports:
-      - "5157:5157"
+#    ports:
+#      - "5157:5157"
     depends_on:
       consul:
         condition: service_healthy
@@ -132,7 +136,7 @@ services:
       - CONSUL_HOST=consul
       - CONSUL_PORT=5150
 
-      - KONTEST_EMAIL_SERVICE_HOST=kontest-email-service
+#      - KONTEST_EMAIL_SERVICE_HOST=kontest-email-service
 
       - KAFKA_HOST=kafka
       - KAFKA_PORT=9092
@@ -140,11 +144,12 @@ services:
       - consul-network
         
   kontest-authentication-service:
+    deploy:
+      replicas: 2
     build:
       context: ./kontest-authentication
-    container_name: kontest-authentication-service
-    ports:
-      - "5155:5155"
+#    ports:
+#      - "5155:5155"
     depends_on:
       consul:
         condition: service_healthy
@@ -167,7 +172,7 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=postgres
 
-      - KONTEST_AUTHENTICATION_SERVICE_HOST=kontest-authentication-service
+#      - KONTEST_AUTHENTICATION_SERVICE_HOST=kontest-authentication-service
 
       - KAFKA_HOST=kafka
       - KAFKA_PORT=9092
@@ -182,11 +187,12 @@ services:
       - ./config/spicedb/spicedb.crt:/spicedb.crt
   
   kontest-user-service:
+    deploy:
+      replicas: 2
     build:
       context: ./kontest-user-service
-    container_name: kontest-user-service
-    ports:
-      - "5156:5156"
+#    ports:
+#      - "5156:5156"
     depends_on:
       consul:
         condition: service_healthy
@@ -203,8 +209,11 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=postgres
 
-      - KONTEST_USER_SERVICE_HOST=kontest-user-service
-      - KONTEST_USER_SERVICE_PORT=5156
+#      - KONTEST_USER_SERVICE_HOST=kontest-user-service
+#      - KONTEST_USER_SERVICE_PORT=5156
+
+      - API_GATEWAY_HOST=api-gateway
+      - API_GATEWAY_PORT=5153
     networks:
       - consul-network
 
