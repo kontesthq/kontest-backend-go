@@ -227,7 +227,7 @@ services:
     networks:
       - consul-network
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - db-data:/var/lib/postgresql
       - ./config/init-scripts/init-database-scripts:/docker-entrypoint-initdb.d
 
 networks:
