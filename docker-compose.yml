@@ -1,4 +1,63 @@
 services:
+  jaeger-es:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.2
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    networks:
+      - tracing-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s http://localhost:9200 >/dev/null || exit 1"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  jaeger-collector:
+    image: jaegertracing/jaeger-collector:1.54
+    depends_on:
+      jaeger-es:
+        condition: service_healthy
+    environment:
+      - SPAN_STORAGE_TYPE=elasticsearch
+      - ES_SERVER_URLS=http://jaeger-es:9200
+    ports:
+      - "4317:4317"
+    networks:
+      - tracing-network
+
+  jaeger-query:
+    image: jaegertracing/jaeger-query:1.54
+    depends_on:
+      jaeger-es:
+        condition: service_healthy
+    environment:
+      - SPAN_STORAGE_TYPE=elasticsearch
+      - ES_SERVER_URLS=http://jaeger-es:9200
+    ports:
+      - "16686:16686"
+    networks:
+      - tracing-network
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.141.0
+    depends_on:
+      - jaeger-collector
+    volumes:
+      - ./config/otel/otel-config.yaml:/etc/otel-config.yaml
+    command:
+      - "--config=/etc/otel-config.yaml"
+    ports:
+      - "4318:4318"
+    networks:
+      - tracing-network
+
   consul:
     image: hashicorp/consul:latest
     ports:
@@ -88,6 +147,9 @@ services:
         
       db:
         condition: service_started
+
+      otel-collector:
+        condition: service_started
     environment:
       - CONSUL_HOST=consul
       - CONSUL_PORT=5150
@@ -97,9 +159,13 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=postgres
 
+      - OTEL_HOST=otel-collector:4318
+      - OTEL_LOG_LEVEL=debug
+
 #      - KONTEST_API_SERVER_HOST=kontest-api
     networks:
       - consul-network
+      - tracing-network
 
   kontest-user-stats-service:
     deploy:
@@ -232,6 +298,8 @@ services:
 
 networks:
   consul-network:
+    driver: bridge
+  tracing-network:
     driver: bridge
 
 volumes:
