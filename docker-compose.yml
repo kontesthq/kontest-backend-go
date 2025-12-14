@@ -125,14 +125,21 @@ services:
     depends_on:
       consul:
         condition: service_healthy
+        
+      otel-collector:
+        condition: service_started
     environment:
       - CONSUL_HOST=consul
       - CONSUL_PORT=5150
 
       - API_GATEWAY_HOST=api-gateway
       - API_GATEWAY_PORT=5153
+        
+      - OTEL_HOST=otel-collector:4318
+      - OTEL_LOG_LEVEL=debug
     networks:
       - consul-network
+      - tracing-network
 
   kontest-api:
     deploy:
