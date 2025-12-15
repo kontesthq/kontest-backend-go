@@ -1,60 +1,33 @@
 services:
-  jaeger-es:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.2
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
+  tempo:
+    image: grafana/tempo:2.4.1
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./config/tempo/tempo-config.yaml:/etc/tempo.yaml
+      - tempo-data:/tmp/tempo
     ports:
-      - "9200:9200"
-    networks:
-      - tracing-network
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -s http://localhost:9200 >/dev/null || exit 1"
-        ]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-      start_period: 30s
-
-  jaeger-collector:
-    image: jaegertracing/jaeger-collector:1.54
-    depends_on:
-      jaeger-es:
-        condition: service_healthy
-    environment:
-      - SPAN_STORAGE_TYPE=elasticsearch
-      - ES_SERVER_URLS=http://jaeger-es:9200
-    ports:
-      - "4317:4317"
-    networks:
-      - tracing-network
-
-  jaeger-query:
-    image: jaegertracing/jaeger-query:1.54
-    depends_on:
-      jaeger-es:
-        condition: service_healthy
-    environment:
-      - SPAN_STORAGE_TYPE=elasticsearch
-      - ES_SERVER_URLS=http://jaeger-es:9200
-    ports:
-      - "16686:16686"
+      - "3200:3200"   # Grafana queries Tempo here
+      - "4317:4317"   # OTLP gRPC (Collector → Tempo)
     networks:
       - tracing-network
 
   otel-collector:
     image: otel/opentelemetry-collector:0.141.0
     depends_on:
-      - jaeger-collector
+      - tempo
     volumes:
       - ./config/otel/otel-config.yaml:/etc/otel-config.yaml
     command:
       - "--config=/etc/otel-config.yaml"
     ports:
       - "4318:4318"
+    networks:
+      - tracing-network
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
     networks:
       - tracing-network
 
@@ -314,4 +287,7 @@ volumes:
     driver: local
 
   kafka_data:
+    driver: local
+
+  tempo-data:
     driver: local
